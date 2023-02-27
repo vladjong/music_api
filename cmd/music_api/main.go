@@ -4,9 +4,11 @@ import (
 	"context"
 	"log"
 
+	"github.com/vladjong/music_api/internal/app"
 	"github.com/vladjong/music_api/internal/config"
 	"github.com/vladjong/music_api/internal/db"
 	"github.com/vladjong/music_api/internal/repository/postgres"
+	"github.com/vladjong/music_api/internal/server/playlist"
 )
 
 func main() {
@@ -28,7 +30,14 @@ func main() {
 	}
 	log.Println("completed migrate")
 
-	postgres.New(pgx)
+	rep := postgres.New(pgx)
+
+	playlist := playlist.New(rep)
+
+	app := app.New(playlist, *cfg)
+	app.Start()
+
+	// postgres.GetSongs(ctx, songs[0].Id)
 
 	// p := playlist.New()
 	// for i := 0; i < 10; i++ {

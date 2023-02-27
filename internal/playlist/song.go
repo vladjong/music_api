@@ -11,13 +11,15 @@ const (
 	Second                    = 1000 * Millisecond
 )
 
-type song struct {
+type Song struct {
+	Id       int64
 	Name     string
 	Duration time.Duration
 }
 
-func NewSong(name string, duration time.Duration) *song {
-	return &song{
+func NewSong(id int64, name string, duration time.Duration) *Song {
+	return &Song{
+		Id:       id,
 		Name:     name,
 		Duration: duration,
 	}

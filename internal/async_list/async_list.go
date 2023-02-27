@@ -12,6 +12,8 @@ type AsyncList interface {
 	Next(in *list.Element) *list.Element
 	Prev(in *list.Element) *list.Element
 	GetValue(in *list.Element) interface{}
+	Len() int
+	Remove(in *list.Element)
 }
 
 type asyncList struct {
@@ -23,6 +25,12 @@ func New() *asyncList {
 	return &asyncList{
 		list: list.New(),
 	}
+}
+
+func (l *asyncList) Remove(in *list.Element) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.list.Remove(in)
 }
 
 func (l *asyncList) PushBack(in interface{}) {
@@ -59,4 +67,10 @@ func (l *asyncList) GetValue(in *list.Element) interface{} {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	return in.Value
+}
+
+func (l *asyncList) Len() int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.list.Len()
 }

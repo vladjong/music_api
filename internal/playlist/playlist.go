@@ -3,6 +3,7 @@ package playlist
 import (
 	"container/list"
 	"fmt"
+	"sync"
 	"time"
 
 	asynclist "github.com/vladjong/music_api/internal/async_list"
@@ -10,16 +11,21 @@ import (
 )
 
 type Playlist interface {
-	AddSong(in *song)
-	Stop() error
-	Next() error
-	Prev() error
+	Play(errorsChan chan error)
+	AddSong(in *Song)
+	Stop(errorsChan chan error)
+	Next(errorsChan chan error)
+	Prev(errorsChan chan error)
+	DeleteSong(id int64, errorsChan chan error)
+	UpdateSong(in *Song, errorsChan chan error)
+	GetSong(errorsChan chan error, resultChan chan *Song)
 }
 
 type playlist struct {
 	data        asynclist.AsyncList
 	currentSong *list.Element
 	timer       *timer.Timer
+	mu          sync.Mutex
 }
 
 func New() *playlist {
@@ -28,11 +34,41 @@ func New() *playlist {
 	}
 }
 
-func (p *playlist) AddSong(in *song) {
+func (p *playlist) GetSong(errorsChan chan error, resultChan chan *Song) {
+	if p.currentSong == nil {
+		errorsChan <- fmt.Errorf("[Playlist.GetSong]:playlist don't play")
+		return
+	}
+	resultChan <- p.getValue()
+}
+
+func (p *playlist) DeleteSong(id int64, errorsChan chan error) {
+	for i := p.data.Front(); i != nil; p.Next(errorsChan) {
+		if id == p.data.GetValue(i).(*Song).Id {
+			p.data.Remove(i)
+		}
+	}
+	errorsChan <- fmt.Errorf("[Playlist.DeleteSong]:don't exist element id=%v", id)
+}
+
+func (p *playlist) UpdateSong(in *Song, errorsChan chan error) {
+	for i := p.data.Front(); i != nil; p.Next(errorsChan) {
+		if in.Id == p.data.GetValue(i).(*Song).Id {
+			p.update(i, in)
+		}
+	}
+	errorsChan <- fmt.Errorf("[Playlist.UpdateSong]:don't exist element id=%v", in.Id)
+}
+
+func (p *playlist) AddSong(in *Song) {
 	p.data.PushBack(in)
 }
 
-func (p *playlist) Play() {
+func (p *playlist) Play(errorsChan chan error) {
+	if p.data.Len() == 0 {
+		errorsChan <- fmt.Errorf("[Playlist.Play]:empty playlist")
+		return
+	}
 	if p.timer == nil {
 		p.currentSong = p.data.Front()
 		p.timer = timer.NewTimer(time.Second * p.getValue().Duration)
@@ -43,26 +79,25 @@ func (p *playlist) Play() {
 	for p.currentSong != nil {
 		go func() {
 			select {
-			case a := <-p.timer.C:
-				fmt.Println(p.getValue().Name, "ready", a)
-				p.Next()
+			case <-p.timer.C:
+				p.Next(errorsChan)
 			}
 		}()
 	}
 }
 
-func (p *playlist) Stop() error {
+func (p *playlist) Stop(errorsChan chan error) {
 	if p.timer == nil {
-		return fmt.Errorf("[Playlist.Stop]:timer don't init")
+		errorsChan <- fmt.Errorf("[Playlist.Stop]:timer don't init")
+		return
 	}
-	fmt.Println(p.getValue().Name, "stop")
 	p.timer.Pause()
-	return nil
 }
 
-func (p *playlist) Next() error {
+func (p *playlist) Next(errorsChan chan error) {
 	if p.timer == nil {
-		return fmt.Errorf("[Playlist.Next]:timer don't init")
+		errorsChan <- fmt.Errorf("[Playlist.Next]:timer don't init")
+		return
 	}
 	p.timer.Stop()
 	p.currentSong = p.data.Next(p.currentSong)
@@ -71,29 +106,29 @@ func (p *playlist) Next() error {
 	}
 	p.timer = timer.NewTimer(time.Second * p.getValue().Duration)
 	p.timer.Start()
-	return nil
 }
 
-func (p *playlist) Prev() error {
+func (p *playlist) Prev(errorsChan chan error) {
 	if p.timer == nil {
-		return fmt.Errorf("[Playlist.Prev]:timer don't init")
+		errorsChan <- fmt.Errorf("[Playlist.Prev]:timer don't init")
+		return
 	}
 	p.timer.Stop()
 	p.currentSong = p.data.Prev(p.currentSong)
 	if p.currentSong == nil {
 		p.currentSong = p.data.Back()
 	}
-	p.timer = timer.NewTimer(time.Second * p.currentSong.Value.(*song).Duration)
+	p.timer = timer.NewTimer(time.Second * p.currentSong.Value.(*Song).Duration)
 	p.timer.Start()
-	return nil
 }
 
-func (p *playlist) Show() {
-	for val := p.data.Front(); val != nil; val = p.data.Next(val) {
-		fmt.Println(val.Value)
-	}
+func (p *playlist) getValue() *Song {
+	return p.data.GetValue(p.currentSong).(*Song)
 }
 
-func (p *playlist) getValue() *song {
-	return p.data.GetValue(p.currentSong).(*song)
+func (p *playlist) update(in *list.Element, out *Song) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.data.GetValue(in).(*Song).Name = out.Name
+	p.data.GetValue(in).(*Song).Duration = out.Duration
 }
