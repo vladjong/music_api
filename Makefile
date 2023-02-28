@@ -5,3 +5,6 @@ docker:
 
 clean:
 	docker compose stop
+
+test:
+	go test ./...

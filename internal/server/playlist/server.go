@@ -25,6 +25,7 @@ type Server interface {
 	DeleteSong(w http.ResponseWriter, r *http.Request)
 	UpdateSong(w http.ResponseWriter, r *http.Request)
 	GetPlaySong(w http.ResponseWriter, r *http.Request)
+	GetBackup(errorChan chan error)
 }
 
 type server struct {

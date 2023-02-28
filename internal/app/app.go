@@ -71,6 +71,10 @@ func (a *App) initHandler() http.Handler {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 
+	if err := a.getBackup(); err != nil {
+		log.Fatal(err)
+	}
+
 	r.Route("/api/v1/playlist", func(router chi.Router) {
 		router.Post("/", a.handler.AddSong)
 		router.Get("/play_song", a.handler.GetPlaySong)
@@ -84,4 +88,15 @@ func (a *App) initHandler() http.Handler {
 		router.Put("/song", a.handler.UpdateSong)
 	})
 	return r
+}
+
+func (a *App) getBackup() error {
+	errors := make(chan error, 1)
+	go a.handler.GetBackup(errors)
+	select {
+	case err := <-errors:
+		return fmt.Errorf("[App.getBackup]%v", err)
+	default:
+		return nil
+	}
 }
