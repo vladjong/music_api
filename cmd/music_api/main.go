@@ -36,24 +36,4 @@ func main() {
 
 	app := app.New(playlist, *cfg)
 	app.Start()
-
-	// postgres.GetSongs(ctx, songs[0].Id)
-
-	// p := playlist.New()
-	// for i := 0; i < 10; i++ {
-	// 	name := fmt.Sprintf("song_%d", i)
-	// 	s := playlist.NewSong(name, 1)
-	// 	p.AddSong(s)
-	// }
-	// go p.Play()
-	// time.Sleep(2 * time.Second)
-	// p.Stop()
-	// time.Sleep(2 * time.Second)
-	// go p.Play()
-	// p.Next()
-	// p.AddSong(playlist.NewSong("test_test", 4))
-	// time.Sleep(2 * time.Second)
-	// time.Sleep(2 * time.Second)
-	// p.Prev()
-	// time.Sleep(30 * time.Second)
 }
