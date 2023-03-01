@@ -17,14 +17,14 @@ services:
     networks:
       - dev-network
 
-  # music_api:
-  #   container_name: music_api
-  #   build:
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - 8080:8080
-  #   restart: always
-  #   networks:
-  #     - dev-network
-  #   depends_on:
-  #     - db
+  music_api:
+    container_name: music_api
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - 8080:8080
+    restart: always
+    networks:
+      - dev-network
+    depends_on:
+      - db

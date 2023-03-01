@@ -14,6 +14,10 @@ import (
 	"github.com/vladjong/music_api/internal/repository"
 )
 
+const (
+	TIME_SLEEP = 300
+)
+
 type Server interface {
 	AddSong(w http.ResponseWriter, r *http.Request)
 	Play(w http.ResponseWriter, r *http.Request)
@@ -48,8 +52,8 @@ func (s *server) GetPlaySong(w http.ResponseWriter, r *http.Request) {
 	select {
 	case err := <-errors:
 		writeError(w, fmt.Errorf("[server.Play]:%v", err), http.StatusBadRequest)
-	default:
-		writeResponseJson(w, <-song)
+	case data := <-song:
+		writeResponseJson(w, data)
 	}
 }
 
@@ -110,19 +114,20 @@ func (s *server) DeleteSong(w http.ResponseWriter, r *http.Request) {
 		writeError(w, fmt.Errorf("[server.DeleteSong]:%v", err), http.StatusBadRequest)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*1))
-	defer cancel()
-	if err := s.storage.DeleteSong(ctx, int64(id)); err != nil {
-		writeError(w, fmt.Errorf("[server.DeleteSong]:%v", err), http.StatusBadRequest)
-		return
-	}
 	errors := make(chan error, 1)
 	go s.playlist.DeleteSong(int64(id), errors)
 	response := Response{Status: fmt.Sprintf("Song id=%v delete in playlist", id)}
+	time.Sleep(time.Millisecond * TIME_SLEEP)
 	select {
 	case err := <-errors:
 		writeError(w, fmt.Errorf("[server.DeleteSong]:%v", err), http.StatusBadRequest)
 	default:
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*1))
+		defer cancel()
+		if err := s.storage.DeleteSong(ctx, int64(id)); err != nil {
+			writeError(w, fmt.Errorf("[server.DeleteSong]:%v", err), http.StatusBadRequest)
+			return
+		}
 		writeResponseJson(w, response)
 	}
 }
@@ -134,21 +139,22 @@ func (s *server) UpdateSong(w http.ResponseWriter, r *http.Request) {
 		writeError(w, fmt.Errorf("[server.UpdateSong]:%v", err), http.StatusBadRequest)
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*1))
-	defer cancel()
-	if err := s.storage.UpdateSong(ctx, *data); err != nil {
-		writeError(w, fmt.Errorf("[server.UpdateSong]:%v", err), http.StatusBadRequest)
-		return
-	}
 	in := playlist.NewSong(data.Id, data.Name, time.Duration(data.Duration))
 	errors := make(chan error, 1)
 	go s.playlist.UpdateSong(in, errors)
+	time.Sleep(time.Millisecond * TIME_SLEEP)
 	response := Response{Status: fmt.Sprintf("Song id=%v update in playlist", in.Id)}
 	select {
 	case err := <-errors:
 		writeError(w, fmt.Errorf("[server.UpdateSong]:%v", err), http.StatusBadRequest)
 	default:
 		writeResponseJson(w, response)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(time.Second*1))
+		defer cancel()
+		if err := s.storage.UpdateSong(ctx, *data); err != nil {
+			writeError(w, fmt.Errorf("[server.UpdateSong]:%v", err), http.StatusBadRequest)
+			return
+		}
 	}
 }
 
@@ -157,6 +163,7 @@ func (s *server) Play(w http.ResponseWriter, r *http.Request) {
 	errors := make(chan error, 1)
 	go s.playlist.Play(errors)
 	response := Response{Status: "Play apply"}
+	time.Sleep(time.Millisecond * TIME_SLEEP)
 	select {
 	case err := <-errors:
 		writeError(w, fmt.Errorf("[server.Play]:%v", err), http.StatusBadRequest)
@@ -170,6 +177,7 @@ func (s *server) Stop(w http.ResponseWriter, r *http.Request) {
 	errors := make(chan error, 1)
 	go s.playlist.Stop(errors)
 	response := Response{Status: "Stop apply"}
+	time.Sleep(time.Millisecond * TIME_SLEEP)
 	select {
 	case err := <-errors:
 		writeError(w, fmt.Errorf("[server.Stop]:%v", err), http.StatusBadRequest)
@@ -183,6 +191,7 @@ func (s *server) Next(w http.ResponseWriter, r *http.Request) {
 	errors := make(chan error, 1)
 	go s.playlist.Next(errors)
 	response := Response{Status: "Next apply"}
+	time.Sleep(time.Millisecond * TIME_SLEEP)
 	select {
 	case err := <-errors:
 		writeError(w, fmt.Errorf("[server.Next]:%v", err), http.StatusBadRequest)
@@ -196,6 +205,7 @@ func (s *server) Prev(w http.ResponseWriter, r *http.Request) {
 	errors := make(chan error, 1)
 	go s.playlist.Prev(errors)
 	response := Response{Status: "Prev apply"}
+	time.Sleep(time.Millisecond * TIME_SLEEP)
 	select {
 	case err := <-errors:
 		writeError(w, fmt.Errorf("[server.Prev]:%v", err), http.StatusBadRequest)

@@ -35,7 +35,7 @@ func New() *playlist {
 }
 
 func (p *playlist) GetSong(errorsChan chan error, resultChan chan *Song) {
-	if p.currentSong == nil {
+	if p.timer == nil || p.currentSong == nil {
 		errorsChan <- fmt.Errorf("[Playlist.GetSong]:playlist don't play")
 		return
 	}
@@ -99,9 +99,9 @@ func (p *playlist) Next(errorsChan chan error) {
 		errorsChan <- fmt.Errorf("[Playlist.Next]:timer don't init")
 		return
 	}
+	p.currentSong = p.currentSong.Next()
 	p.timer.Stop()
-	p.currentSong = p.data.Next(p.currentSong)
-	if p.currentSong == nil {
+	if p.data.Next(p.currentSong) == nil {
 		p.currentSong = p.data.Front()
 	}
 	p.timer = timer.NewTimer(time.Second * p.getValue().Duration)

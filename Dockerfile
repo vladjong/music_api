@@ -9,5 +9,5 @@ COPY ./go.sum ./go.sum
 COPY ./.env ./.env
 COPY ./migration ./migration
 
-RUN go build -o music ./cmd/music_api/main.go
+RUN go build -o music_api ./cmd/music_api/main.go
 CMD ["/app/music_api"]

@@ -74,7 +74,7 @@ func TestDeleteSong(t *testing.T) {
 	testTable := []testCase{
 		{
 			name:     "correct",
-			input:    0,
+			input:    1,
 			hasError: false,
 		},
 		{
@@ -296,7 +296,6 @@ func TestPrevtSong(t *testing.T) {
 			time.Sleep(50 * Millisecond)
 			go playlist.GetSong(errorChan, resultChan)
 			time.Sleep(50 * Millisecond)
-
 			select {
 			case err := <-errorChan:
 				log.Fatal(err)
